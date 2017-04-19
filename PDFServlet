@@ -1,0 +1,93 @@
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Properties;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.taobao.security.url.FilePath;
+
+/**
+ * Servlet implementation class PDFServlet
+ */
+public class PDFServlet extends HttpServlet {
+
+    private static final long   serialVersionUID    = 1L;
+
+    private static final String ATTACHMENT_FILENAME = "attachment; filename=";
+    private static final String CONTENT_LENGTH      = "Content-Length";
+    private static final String CONTENT_DISPOSITION = "Content-disposition";
+
+    /**
+     * @see HttpServlet#HttpServlet()
+     */
+    public PDFServlet(){
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+    /**
+     * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
+     */
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        doPost(request, response);
+    }
+
+    /**
+     * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
+     */
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException,
+                                                                                   IOException {
+        InputStream is = null;
+        InputStream propIs = null;
+        OutputStream toClient = null;
+        try {
+            String fileName = FilePath.pathFilter(request.getParameter("fileName"));
+            // http://127.0.0.1:8080/test?fileName=tangwb.pdf
+            // String requestURL = request.getRequestURL().toString();
+            // String fullURL = requestURL.substring(0, requestURL.lastIndexOf(Servlet_Name));
+            // is = new BufferedInputStream(new URL(fullURL + "alibaba/" + fileName).openStream());
+            
+            is = request.getServletContext().getResourceAsStream("/alibaba/" + fileName);
+            byte[] buffer = new byte[is.available()];
+            is.read(buffer);
+
+            // 获取中文名
+            Properties prop = new Properties();
+            propIs = request.getServletContext().getResourceAsStream("/alibaba/file.properties");
+            prop.load(propIs);
+            String chineseName = (String) prop.get(fileName);
+
+            response.reset();
+            response.setHeader(CONTENT_DISPOSITION, ATTACHMENT_FILENAME + chineseName);
+            response.setContentType("application/pdf");
+            response.addHeader(CONTENT_LENGTH, "" + buffer.length);
+            
+            response.setHeader("Pragma", "public");
+            response.addHeader("Cache-Control", "max-age=0");
+            
+
+            toClient = response.getOutputStream();
+            toClient.write(buffer);
+            toClient.flush();
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        } finally {
+            if (null != toClient) {
+                toClient.close();
+            }
+            if (null != is) {
+                is.close();
+            }
+            if (null != propIs) {
+                propIs.close();
+            }
+        }
+
+    }
+
+}
